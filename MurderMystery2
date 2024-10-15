@@ -6,6 +6,15 @@ local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
 local roles
 
+local gameId = 142823291
+
+-- Check if the player is in the correct game
+Players.PlayerAdded:Connect(function(player)
+    if game.PlaceId ~= gameId then
+        player:Kick("THIS IS A MM2 SCRIPT.")
+    end
+end)
+
 -- Create GUI
 local screenGui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
 local frame = Instance.new("Frame", screenGui)
@@ -122,18 +131,4 @@ function IsAlive(Player)
     end
 end
 
--- Main loop to update roles and highlights every frame
-RunService.RenderStepped:Connect(function()
-    roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
-    for i, v in pairs(roles) do
-        if v.Role == "Murderer" then
-            Murder = i
-        elseif v.Role == "Sheriff" then
-            Sheriff = i
-        elseif v.Role == "Hero" then
-            Hero = i
-        end
-    end
-    CreateHighlight()
-    UpdateHighlights()
-end)
+-- Main loop to update roles and highlig
