@@ -1,0 +1,139 @@
+-- > Declarations < --
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+local roles
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 200, 0, 300)
+frame.Position = UDim2.new(0.5, -100, 0.5, -150)
+frame.BackgroundColor3 = Color3.new(0, 0, 0)
+frame.BorderSizePixel = 0
+
+-- Create Notification
+local function createNotification(message)
+    local notification = Instance.new("TextLabel", screenGui)
+    notification.Size = UDim2.new(0, 300, 0, 50)
+    notification.Position = UDim2.new(0.5, -150, 0, 20)
+    notification.Text = message
+    notification.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    notification.TextColor3 = Color3.new(1, 1, 1)
+    notification.BorderSizePixel = 0
+    notification.TextScaled = true
+
+    -- Fade out the notification
+    for i = 1, 10 do
+        wait(0.1)
+        notification.TextTransparency = notification.TextTransparency + 0.1
+    end
+    notification:Destroy()
+end
+
+-- Create Buttons
+local function createButton(name, position)
+    local button = Instance.new("TextButton", frame)
+    button.Size = UDim2.new(0, 180, 0, 50)
+    button.Position = position
+    button.Text = name .. " ESP: ON"
+    button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    
+    return button
+end
+
+local murderButton = createButton("Murder", UDim2.new(0, 10, 0, 10))
+local sheriffButton = createButton("Sheriff", UDim2.new(0, 10, 0, 70))
+local heroButton = createButton("Hero", UDim2.new(0, 10, 0, 130))
+local innocentButton = createButton("Innocent", UDim2.new(0, 10, 0, 190))
+
+-- Toggle Variables
+local MurderESP = true
+local SheriffESP = true
+local HeroESP = true
+local InnocentESP = true
+
+-- Button Toggle Functions
+local function toggleESP(button, espFlag)
+    espFlag = not espFlag
+    button.Text = espFlag and button.Name .. " ESP: ON" or button.Name .. " ESP: OFF"
+    createNotification(button.Name .. " ESP has been " .. (espFlag and "enabled" or "disabled") .. ".")
+    return espFlag
+end
+
+murderButton.MouseButton1Click:Connect(function()
+    MurderESP = toggleESP(murderButton, MurderESP)
+end)
+
+sheriffButton.MouseButton1Click:Connect(function()
+    SheriffESP = toggleESP(sheriffButton, SheriffESP)
+end)
+
+heroButton.MouseButton1Click:Connect(function()
+    HeroESP = toggleESP(heroButton, HeroESP)
+end)
+
+innocentButton.MouseButton1Click:Connect(function()
+    InnocentESP = toggleESP(innocentButton, InnocentESP)
+end)
+
+-- > Functions < --
+
+-- Create Highlight for players
+function CreateHighlight()
+    for _, player in pairs(Players:GetChildren()) do
+        if player ~= LP and player.Character and not player.Character:FindFirstChild("Highlight") then
+            Instance.new("Highlight", player.Character)
+        end
+    end
+end
+
+-- Update the highlights based on roles and toggles
+function UpdateHighlights()
+    for _, player in pairs(Players:GetChildren()) do
+        if player ~= LP and player.Character and player.Character:FindFirstChild("Highlight") then
+            local highlight = player.Character:FindFirstChild("Highlight")
+
+            -- Determine the color based on role and toggle status
+            if player.Name == Sheriff and IsAlive(player) and SheriffESP then
+                highlight.FillColor = Color3.fromRGB(0, 0, 225) -- Blue for Sheriff
+            elseif player.Name == Murder and IsAlive(player) and MurderESP then
+                highlight.FillColor = Color3.fromRGB(225, 0, 0) -- Red for Murderer
+            elseif player.Name == Hero and IsAlive(player) and not IsAlive(Players[Sheriff]) and HeroESP then
+                highlight.FillColor = Color3.fromRGB(255, 250, 0) -- Yellow for Hero
+            elseif InnocentESP then
+                highlight.FillColor = Color3.fromRGB(0, 225, 0) -- Green for Innocent/Other
+            else
+                highlight.Enabled = false -- Disable highlight if ESP is turned off
+            end
+        end
+    end
+end
+
+-- Check if the player is alive
+function IsAlive(Player)
+    for i, v in pairs(roles) do
+        if Player.Name == i then
+            return not v.Killed and not v.Dead
+        end
+    end
+end
+
+-- Main loop to update roles and highlights every frame
+RunService.RenderStepped:Connect(function()
+    roles = ReplicatedStorage:FindFirstChild("GetPlayerData", true):InvokeServer()
+    for i, v in pairs(roles) do
+        if v.Role == "Murderer" then
+            Murder = i
+        elseif v.Role == "Sheriff" then
+            Sheriff = i
+        elseif v.Role == "Hero" then
+            Hero = i
+        end
+    end
+    CreateHighlight()
+    UpdateHighlights()
+end)
